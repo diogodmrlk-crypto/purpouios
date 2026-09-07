@@ -207,6 +207,11 @@ const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(
 
 export default defineConfig({
   plugins,
+  // Vite only exposes VITE_* variables by default. Keep the requested
+  // VITEPURPOUADMIN name and explicitly inject it into the client bundle.
+  define: {
+    "import.meta.env.VITEPURPOUADMIN": JSON.stringify(process.env.VITEPURPOUADMIN ?? ""),
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
