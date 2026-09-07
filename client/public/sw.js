@@ -1,4 +1,4 @@
-const CACHE_NAME = "purpouios-shell-v1";
+const CACHE_NAME = "purpouios-shell-v2";
 const APP_SHELL = ["/", "/manifest.webmanifest", "/purpouios-icon.svg"];
 
 self.addEventListener("install", (event) => {
