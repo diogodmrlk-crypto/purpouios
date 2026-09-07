@@ -14,19 +14,18 @@ O login aceita registros com qualquer um dos campos `key`, `code` ou `token`. Re
 
 ## Painel admin
 
-O link **Acesso administrativo** abre o painel de gerenciamento. A chave admin é lida de `VITE_ADMIN_KEY`; configure essa variável na Vercel usando o modelo de `.env.example`. O painel permite:
+O link **Acesso administrativo** abre o painel de gerenciamento. A chave admin é lida de `VITEPURPOUADMIN`; configure essa variável na Vercel. O painel permite:
 
 - listar as keys atuais da MockAPI;
 - criar uma key manual ou gerar uma automaticamente;
 - remover keys por ID.
 
-Como este projeto é um frontend estático, `VITE_ADMIN_KEY` é incorporada ao bundle do navegador e não deve ser tratada como segredo forte. Para controle administrativo realmente seguro, migre a validação e o CRUD para uma API server-side com autenticação.
+Como este projeto é um frontend estático, `VITEPURPOUADMIN` é incorporada ao bundle do navegador e não deve ser tratada como segredo forte. Para controle administrativo realmente seguro, migre a validação e o CRUD para uma API server-side com autenticação.
 
 ## Desenvolvimento local
 
 ```bash
 pnpm install
-cp .env.example .env.local
 pnpm dev
 ```
 
@@ -41,6 +40,6 @@ O arquivo `client/public/purpouios.mobileconfig` é servido na raiz como `/purpo
 
 ## Deploy na Vercel
 
-O projeto usa Vite e pode ser importado diretamente na Vercel. As configurações do `vercel.json` apontam o build para `dist/public` e mantêm o fallback SPA. No projeto da Vercel, adicione `VITE_ADMIN_KEY` antes de publicar.
+O projeto usa Vite e pode ser importado diretamente na Vercel. As configurações do `vercel.json` apontam o build para `dist/public` e mantêm o fallback SPA. No projeto da Vercel, adicione `VITEPURPOUADMIN` com o valor `PURPOU2002` antes de publicar.
 
 > Observação: o conteúdo do `.mobileconfig` foi mantido exatamente conforme fornecido. Ele contém um payload de configuração genérico; para aplicar um DNS específico no iOS, o payload precisa incluir uma configuração DNS compatível com o serviço desejado.

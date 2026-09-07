@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 
 const PROFILE_PATH = "/purpouios.mobileconfig";
 const API_URL = "https://69b9908ce69653ffe6a81689.mockapi.io/api/v1/Scy";
-const ADMIN_KEY = import.meta.env.VITE_ADMIN_KEY?.trim() ?? "";
+const ADMIN_KEY = import.meta.env.VITEPURPOUADMIN?.trim() ?? "";
 
 type View = "login" | "panel" | "admin";
 type KeyRecord = {
@@ -100,7 +100,7 @@ export default function Home() {
 
     if (isAdminLogin) {
       if (!ADMIN_KEY) {
-        setError("Admin desativado. Configure VITE_ADMIN_KEY na Vercel.");
+        setError("Admin desativado. Configure VITEPURPOUADMIN na Vercel.");
         return;
       }
       if (trimmedAccess !== ADMIN_KEY) {
