@@ -705,3 +705,21 @@ h2 {
     width: 100%;
   }
 }
+
+.key-format-hint {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  height: 50px;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid #2b2828;
+  border-radius: 15px;
+  padding: 0 14px;
+  color: #666;
+  background: rgba(10, 10, 10, 0.84);
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

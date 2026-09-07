@@ -17,7 +17,7 @@ O login aceita registros com qualquer um dos campos `key`, `code` ou `token`. Re
 O link **Acesso administrativo** abre o painel de gerenciamento. A chave admin é lida de `VITEPURPOUADMIN`; configure essa variável na Vercel. O painel permite:
 
 - listar as keys atuais da MockAPI;
-- criar uma key manual ou gerar uma automaticamente;
+- gerar somente keys permanentes no formato `PURPOUIOS-permanent-XXXXXXXXXXXX`;
 - remover keys por ID.
 
 Como este projeto é um frontend estático, `VITEPURPOUADMIN` é incorporada ao bundle do navegador e não deve ser tratada como segredo forte. Para controle administrativo realmente seguro, migre a validação e o CRUD para uma API server-side com autenticação.

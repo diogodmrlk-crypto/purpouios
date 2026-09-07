@@ -11,10 +11,17 @@ type KeyRecord = {
   key?: string;
   code?: string;
   token?: string;
+  used?: boolean;
+  device?: string | null;
+  expire?: number;
+  type?: string;
   status?: string;
   active?: boolean;
-  expiresAt?: string;
-  createdAt?: string;
+  expiresAt?: string | number | null;
+  createdAt?: string | number;
+  activatedAt?: string | number | null;
+  onlineAt?: string | number | null;
+  history?: unknown[];
   uses?: number;
 };
 
@@ -36,17 +43,22 @@ function getRecordKey(record: KeyRecord) {
 function isRecordActive(record: KeyRecord) {
   const status = record.status?.toLowerCase();
   if (record.active === false || status === "inactive" || status === "disabled" || status === "expired") return false;
-  if (record.expiresAt && new Date(record.expiresAt).getTime() < Date.now()) return false;
+  if (record.expiresAt) {
+    const expiresAt = typeof record.expiresAt === "number"
+      ? (record.expiresAt < 1_000_000_000_000 ? record.expiresAt * 1000 : record.expiresAt)
+      : new Date(record.expiresAt).getTime();
+    if (Number.isFinite(expiresAt) && expiresAt < Date.now()) return false;
+  }
   return true;
 }
 
-function generateKey() {
+function generatePermanentKey() {
   const randomPart = () => {
-    const bytes = new Uint8Array(4);
+    const bytes = new Uint8Array(6);
     crypto.getRandomValues(bytes);
     return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("").toUpperCase();
   };
-  return `PURP-${randomPart()}-${randomPart()}`;
+  return `PURPOUIOS-permanent-${randomPart()}`;
 }
 
 export default function Home() {
@@ -60,7 +72,6 @@ export default function Home() {
   const [isActivated, setIsActivated] = useState(false);
   const [keys, setKeys] = useState<KeyRecord[]>([]);
   const [isLoadingKeys, setIsLoadingKeys] = useState(false);
-  const [newKey, setNewKey] = useState("");
   const [isSavingKey, setIsSavingKey] = useState(false);
   const intervalRef = useRef<number | null>(null);
 
@@ -150,15 +161,27 @@ export default function Home() {
     setIsSavingKey(true);
     setError("");
     setNotice("");
-    const value = newKey.trim() || generateKey();
+    const value = generatePermanentKey();
+    const createdAt = Math.floor(Date.now() / 1000);
     try {
       const response = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: value, status: "active", active: true, createdAt: new Date().toISOString(), uses: 0 }),
+        body: JSON.stringify({
+          key: value,
+          used: false,
+          device: null,
+          expire: 0,
+          type: "permanent",
+          createdAt,
+          activatedAt: null,
+          expiresAt: null,
+          status: "active",
+          onlineAt: null,
+          history: [],
+        }),
       });
       if (!response.ok) throw new Error("create");
-      setNewKey("");
       setNotice(`Key ${value} criada com sucesso.`);
       await loadKeys();
     } catch {
@@ -224,10 +247,10 @@ export default function Home() {
             <p className="panel-description">Crie, consulte e remova as keys de acesso conectadas à MockAPI.</p>
 
             <form className="create-key-form" onSubmit={createKey}>
-              <label htmlFor="new-key">Nova key <span>opcional</span></label>
+              <label htmlFor="create-key">Nova key permanente</label>
               <div className="create-key-row">
-                <input id="new-key" value={newKey} onChange={(event) => setNewKey(event.target.value)} placeholder="Gerar automaticamente" />
-                <button className="primary-button compact-button" type="submit" disabled={isSavingKey}>{isSavingKey ? "..." : "Criar"}</button>
+                <div className="key-format-hint" id="create-key">PURPOUIOS-permanent-XXXXXXXXXXXX</div>
+                <button className="primary-button compact-button" type="submit" disabled={isSavingKey}>{isSavingKey ? "..." : "Gerar key"}</button>
               </div>
             </form>
 
