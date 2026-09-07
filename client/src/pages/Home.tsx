@@ -5,6 +5,7 @@ const PROFILE_PATH = "/purpouios.mobileconfig";
 const API_URL = "https://69b9908ce69653ffe6a81689.mockapi.io/api/v1/Scy";
 const ADMIN_KEY = import.meta.env.VITEPURPOUADMIN?.trim() ?? "";
 const USER_SESSION_KEY = "purpouios.user.key";
+const USER_DEVICE_KEY = "purpouios.device.id";
 
 type View = "login" | "panel" | "admin";
 type AdminPage = "overview" | "keys";
@@ -52,6 +53,26 @@ function generatePermanentKey() {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   return `PURPOUIOS-perm-${Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("")}`;
 }
+function getDeviceId() {
+  const saved = window.localStorage.getItem(USER_DEVICE_KEY);
+  if (saved) return saved;
+  const generated = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `device-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  window.localStorage.setItem(USER_DEVICE_KEY, generated);
+  return generated;
+}
+function getOperatingSystem() {
+  const platform = navigator.platform.toLowerCase();
+  if (platform.includes("iphone") || platform.includes("ipad") || /iphone|ipad/i.test(navigator.userAgent)) return "ios";
+  if (platform.includes("android")) return "android";
+  if (platform.includes("mac")) return "macos";
+  if (platform.includes("win")) return "windows";
+  return "browser";
+}
+function getDeviceName() {
+  if (/iphone/i.test(navigator.userAgent)) return "iPhone";
+  if (/ipad/i.test(navigator.userAgent)) return "iPad";
+  return navigator.platform || "Browser";
+}
 
 export default function Home() {
   const [view, setView] = useState<View>("login");
@@ -85,8 +106,8 @@ export default function Home() {
         const response = await fetch(API_URL, { cache: "no-store" });
         if (!response.ok) throw new Error("api");
         const records = (await response.json()) as KeyRecord[];
-        const valid = records.some((record) => getRecordKey(record).toLowerCase() === savedKey.toLowerCase() && isActive(record));
-        if (valid) { setAccess(savedKey); setView("panel"); startPreparation(); }
+        const matched = records.find((record) => getRecordKey(record).toLowerCase() === savedKey.toLowerCase() && isActive(record));
+        if (matched) { await syncKeyUsage(matched, false); setAccess(savedKey); setView("panel"); startPreparation(); }
         else window.localStorage.removeItem(USER_SESSION_KEY);
       } catch {
         // Keep the saved session while the API is temporarily unavailable.
@@ -94,6 +115,23 @@ export default function Home() {
       } finally { setIsRestoringSession(false); }
     })();
   }, []);
+
+  useEffect(() => {
+    if (view !== "panel" || !access) return;
+    const heartbeat = async () => {
+      try {
+        const response = await fetch(API_URL, { cache: "no-store" });
+        if (!response.ok) return;
+        const records = (await response.json()) as KeyRecord[];
+        const matched = records.find((record) => getRecordKey(record).toLowerCase() === access.toLowerCase() && isActive(record));
+        if (matched) await syncKeyUsage(matched, false);
+      } catch {
+        // Keep the local session if the API is temporarily unavailable.
+      }
+    };
+    const interval = window.setInterval(() => void heartbeat(), 60_000);
+    return () => window.clearInterval(interval);
+  }, [access, view]);
 
   const loadKeys = async () => {
     setIsLoadingKeys(true);
@@ -130,11 +168,29 @@ export default function Home() {
       const response = await fetch(API_URL, { cache: "no-store" });
       if (!response.ok) throw new Error("api");
       const records = (await response.json()) as KeyRecord[];
-      if (!records.some((record) => getRecordKey(record).toLowerCase() === value.toLowerCase() && isActive(record))) { setError("Key inválida, expirada ou desativada."); return; }
+      const matched = records.find((record) => getRecordKey(record).toLowerCase() === value.toLowerCase() && isActive(record));
+      if (!matched) { setError("Key inválida, expirada ou desativada."); return; }
+      await syncKeyUsage(matched, true);
       window.localStorage.setItem(USER_SESSION_KEY, value);
       setView("panel"); startPreparation();
     } catch { setError("Não foi possível consultar as keys agora. Tente novamente."); }
   };
+
+  async function syncKeyUsage(record: KeyRecord, addHistory: boolean) {
+    if (!record.id) return;
+    const now = Math.floor(Date.now() / 1000);
+    const deviceId = getDeviceId();
+    const history = Array.isArray(record.history) ? record.history : [];
+    const nextHistory = addHistory
+      ? [...history, { id: Date.now(), operatingSystem: getOperatingSystem(), device: getDeviceName(), performance: "standard", createdAt: new Date().toISOString() }].slice(-30)
+      : history;
+    const response = await fetch(`${API_URL}/${record.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ used: true, device: deviceId, hwid: deviceId, activatedAt: record.activatedAt ?? now, onlineAt: now, status: "active", active: true, history: nextHistory }),
+    });
+    if (!response.ok) throw new Error("sync-key");
+  }
 
   const createKey = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
