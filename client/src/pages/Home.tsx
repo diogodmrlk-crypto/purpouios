@@ -233,9 +233,10 @@ export default function Home() {
   const requestUserLogout = () => { setIsUserMenuOpen(false); setIsLogoutConfirmOpen(true); };
   const confirmUserLogout = () => { window.localStorage.removeItem(USER_SESSION_KEY); logout(); };
   const downloadProfile = () => {
-    // Do not use the download attribute: iOS needs to receive the profile
-    // with Apple's MIME type so Safari can hand it to the Settings installer.
-    window.location.assign(PROFILE_PATH);
+    // iOS does not hand .mobileconfig files from a standalone PWA to Settings.
+    // Opening a new browser context lets Safari recognize the Apple profile.
+    const profileTab = window.open(PROFILE_PATH, "_blank", "noopener,noreferrer");
+    if (!profileTab) window.location.assign(PROFILE_PATH);
     setIsActivated(true);
   };
 
