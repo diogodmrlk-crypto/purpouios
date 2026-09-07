@@ -54,11 +54,12 @@ function isRecordActive(record: KeyRecord) {
 
 function generatePermanentKey() {
   const randomPart = () => {
-    const bytes = new Uint8Array(6);
+    const bytes = new Uint8Array(9);
     crypto.getRandomValues(bytes);
-    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("").toUpperCase();
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
   };
-  return `PURPOUIOS-permanent-${randomPart()}`;
+  return `PURPOUIOS-perm-${randomPart()}`;
 }
 
 export default function Home() {
@@ -249,7 +250,7 @@ export default function Home() {
             <form className="create-key-form" onSubmit={createKey}>
               <label htmlFor="create-key">Nova key permanente</label>
               <div className="create-key-row">
-                <div className="key-format-hint" id="create-key">PURPOUIOS-permanent-XXXXXXXXXXXX</div>
+                <div className="key-format-hint" id="create-key">PURPOUIOS-perm-XXXXXXXXX</div>
                 <button className="primary-button compact-button" type="submit" disabled={isSavingKey}>{isSavingKey ? "..." : "Gerar key"}</button>
               </div>
             </form>
