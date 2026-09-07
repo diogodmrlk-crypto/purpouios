@@ -2,5 +2,15 @@
   "buildCommand": "pnpm build",
   "outputDirectory": "dist/public",
   "framework": "vite",
+  "headers": [
+    {
+      "source": "/purpouios.mobileconfig",
+      "headers": [
+        { "key": "Content-Type", "value": "application/x-apple-aspen-config" },
+        { "key": "Content-Disposition", "value": "inline; filename=PURPOU-IOS.mobileconfig" },
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    }
+  ],
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

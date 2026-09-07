@@ -232,7 +232,12 @@ export default function Home() {
   const logout = () => { setView("login"); setAccess(""); setError(""); setNotice(""); setIsDrawerOpen(false); setIsUserMenuOpen(false); setIsLogoutConfirmOpen(false); };
   const requestUserLogout = () => { setIsUserMenuOpen(false); setIsLogoutConfirmOpen(true); };
   const confirmUserLogout = () => { window.localStorage.removeItem(USER_SESSION_KEY); logout(); };
-  const downloadProfile = () => { const link = document.createElement("a"); link.href = PROFILE_PATH; link.download = "PURPOU-IOS.mobileconfig"; document.body.appendChild(link); link.click(); link.remove(); setIsActivated(true); };
+  const downloadProfile = () => {
+    // Do not use the download attribute: iOS needs to receive the profile
+    // with Apple's MIME type so Safari can hand it to the Settings installer.
+    window.location.assign(PROFILE_PATH);
+    setIsActivated(true);
+  };
 
   const filteredKeys = useMemo(() => keys.filter((record) => `${getRecordKey(record)} ${record.username ?? record.user ?? ""} ${getDevice(record) ?? ""}`.toLowerCase().includes(search.toLowerCase())), [keys, search]);
   const activeCount = keys.filter(isActive).length;
