@@ -1,0 +1,19 @@
+{
+  "name": "PurpouIOS",
+  "short_name": "PurpouIOS",
+  "description": "Painel PurpouIOS para preparar o perfil de configuração iOS.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#050505",
+  "theme_color": "#080000",
+  "icons": [
+    {
+      "src": "/purpouios-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

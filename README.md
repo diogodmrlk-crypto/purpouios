@@ -43,3 +43,7 @@ O arquivo `client/public/purpouios.mobileconfig` é servido na raiz como `/purpo
 O projeto usa Vite e pode ser importado diretamente na Vercel. As configurações do `vercel.json` apontam o build para `dist/public` e mantêm o fallback SPA. No projeto da Vercel, adicione `VITEPURPOUADMIN` com o valor `PURPOU2002` antes de publicar.
 
 > Observação: o conteúdo do `.mobileconfig` foi mantido exatamente conforme fornecido. Ele contém um payload de configuração genérico; para aplicar um DNS específico no iOS, o payload precisa incluir uma configuração DNS compatível com o serviço desejado.
+
+## Instalação como app no iPhone
+
+Abra o site no Safari, toque em **Compartilhar**, escolha **Adicionar à Tela de Início** e confirme. Ao abrir pelo ícone criado, o PurpouIOS usa o modo standalone do iOS, sem a barra de endereço ou busca do Safari. O modo sem barra só é aplicado quando o site é aberto pelo ícone da Tela de Início; a primeira abertura pelo Safari continuará mostrando os controles do navegador.

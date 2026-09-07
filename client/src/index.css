@@ -813,3 +813,17 @@ h2 {
 .logout-confirm-button { margin: 0; background: linear-gradient(135deg, #8e2222, #5b0000); }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (max-width: 430px) { .user-panel-shell { padding-right: 16px; padding-left: 16px; } }
+
+html {
+  background: #050505;
+}
+
+body {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+@media (display-mode: standalone) {
+  .app-shell {
+    min-height: 100svh;
+  }
+}
