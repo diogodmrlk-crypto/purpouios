@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 const PROFILE_PATH = "/purpouios.mobileconfig";
 const API_URL = "https://69b9908ce69653ffe6a81689.mockapi.io/api/v1/Scy";
 const ADMIN_KEY = import.meta.env.VITEPURPOUADMIN?.trim() ?? "";
+const USER_SESSION_KEY = "purpouios.user.key";
 
 type View = "login" | "panel" | "admin";
 type AdminPage = "overview" | "keys";
@@ -66,12 +67,33 @@ export default function Home() {
   const [isLoadingKeys, setIsLoadingKeys] = useState(false);
   const [isSavingKey, setIsSavingKey] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+  const [isRestoringSession, setIsRestoringSession] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [username, setUsername] = useState("");
   const [search, setSearch] = useState("");
   const intervalRef = useRef<number | null>(null);
 
   useEffect(() => () => { if (intervalRef.current !== null) window.clearInterval(intervalRef.current); }, []);
+
+  useEffect(() => {
+    const savedKey = window.localStorage.getItem(USER_SESSION_KEY);
+    if (!savedKey) { setIsRestoringSession(false); return; }
+    void (async () => {
+      try {
+        const response = await fetch(API_URL, { cache: "no-store" });
+        if (!response.ok) throw new Error("api");
+        const records = (await response.json()) as KeyRecord[];
+        const valid = records.some((record) => getRecordKey(record).toLowerCase() === savedKey.toLowerCase() && isActive(record));
+        if (valid) { setAccess(savedKey); setView("panel"); startPreparation(); }
+        else window.localStorage.removeItem(USER_SESSION_KEY);
+      } catch {
+        // Keep the saved session while the API is temporarily unavailable.
+        setAccess(savedKey); setView("panel"); startPreparation();
+      } finally { setIsRestoringSession(false); }
+    })();
+  }, []);
 
   const loadKeys = async () => {
     setIsLoadingKeys(true);
@@ -109,6 +131,7 @@ export default function Home() {
       if (!response.ok) throw new Error("api");
       const records = (await response.json()) as KeyRecord[];
       if (!records.some((record) => getRecordKey(record).toLowerCase() === value.toLowerCase() && isActive(record))) { setError("Key inválida, expirada ou desativada."); return; }
+      window.localStorage.setItem(USER_SESSION_KEY, value);
       setView("panel"); startPreparation();
     } catch { setError("Não foi possível consultar as keys agora. Tente novamente."); }
   };
@@ -150,13 +173,17 @@ export default function Home() {
 
   const resetKey = (record: KeyRecord) => updateKey(record, { used: false, device: null, hwid: null, activatedAt: null, onlineAt: null, status: "active", active: true }, "Vínculo da key reiniciado.");
   const toggleKey = (record: KeyRecord) => isActive(record) ? updateKey(record, { status: "revoked", active: false }, "Key bloqueada.") : updateKey(record, { status: "active", active: true }, "Key reativada.");
-  const logout = () => { setView("login"); setAccess(""); setError(""); setNotice(""); setIsDrawerOpen(false); };
+  const logout = () => { setView("login"); setAccess(""); setError(""); setNotice(""); setIsDrawerOpen(false); setIsUserMenuOpen(false); setIsLogoutConfirmOpen(false); };
+  const requestUserLogout = () => { setIsUserMenuOpen(false); setIsLogoutConfirmOpen(true); };
+  const confirmUserLogout = () => { window.localStorage.removeItem(USER_SESSION_KEY); logout(); };
   const downloadProfile = () => { const link = document.createElement("a"); link.href = PROFILE_PATH; link.download = "PURPOU-IOS.mobileconfig"; document.body.appendChild(link); link.click(); link.remove(); setIsActivated(true); };
 
   const filteredKeys = useMemo(() => keys.filter((record) => `${getRecordKey(record)} ${record.username ?? record.user ?? ""} ${getDevice(record) ?? ""}`.toLowerCase().includes(search.toLowerCase())), [keys, search]);
   const activeCount = keys.filter(isActive).length;
   const revokedCount = keys.filter((record) => !isActive(record)).length;
   const linkedCount = keys.filter((record) => Boolean(getDevice(record))).length;
+
+  if (isRestoringSession) return <main className="app-shell session-loading"><div className="session-spinner" aria-label="Restaurando sessão" /><span>Restaurando seu acesso...</span></main>;
 
   if (view === "admin") {
     return <main className="app-shell admin-shell"><div className="ambient ambient-left" aria-hidden="true" /><div className="ambient ambient-right" aria-hidden="true" /><div className="grain" aria-hidden="true" />
@@ -190,7 +217,7 @@ export default function Home() {
   if (view === "login") return <main className="app-shell"><div className="ambient ambient-left" aria-hidden="true" /><div className="ambient ambient-right" aria-hidden="true" /><div className="grain" aria-hidden="true" /><div className="container"><section className="card login-card" aria-labelledby="login-title"><div className="logo logo-blood" aria-hidden="true">🩸</div><p className="eyebrow">CONFIGURAÇÃO PRIVADA · IOS</p><h1 id="login-title">PurpouIOS</h1><p className="subtitle">{isAdminLogin ? "Acesso administrativo" : "Acesso ao painel iOS"}</p><form onSubmit={handleLogin} noValidate><div className="input-box"><label className="sr-only" htmlFor="usuario">Acesso</label><input id="usuario" type="text" value={access} onChange={(event) => { setAccess(event.target.value); if (error) setError(""); }} placeholder={isAdminLogin ? "Digite a chave admin" : "Digite sua key de acesso"} autoComplete="off" autoCapitalize="none" spellCheck="false" /></div><button className="primary-button" type="submit"><span>Entrar</span><span className="button-arrow" aria-hidden="true">↗</span></button></form><p className={`error ${error ? "is-visible" : ""}`} role="alert">{error || " "}</p><button className="admin-link" type="button" onClick={() => { setIsAdminLogin((current) => !current); setAccess(""); setError(""); }}>{isAdminLogin ? "Voltar para acesso por key" : "Acesso administrativo"}</button><div className="footer"><span className="footer-dot" aria-hidden="true" /> PurpouIOS <span>•</span> Sistema iOS</div></section></div></main>;
 
   const copy = getProgressCopy(progress);
-  return <main className="app-shell"><div className="container"><section className="card panel-card" aria-labelledby="panel-title"><div className="panel-header"><div className="logo logo-settings" aria-hidden="true">⚙️</div><div><p className="eyebrow">PURPOU IOS · PERFIL 01</p><h2 id="panel-title">Abaixar DNS</h2></div></div><p className="panel-description">Prepare o perfil de configuração para seu dispositivo.</p><div className="progress-area" aria-live="polite"><div className="progress-info"><span>{isReady ? "Concluído" : copy.label}</span><span>{progress}%</span></div><div className="progress-track" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}><div className="progress-bar" style={{ width: `${progress}%` }} /></div><div className="progress-meta"><span className="live-indicator" aria-hidden="true" /><span>{isReady ? "Perfil validado" : "Conexão segura"}</span></div></div><p className={`status ${isReady ? "status-ready" : ""}`}>{isReady ? (isActivated ? "Perfil aberto. Siga as instruções do iOS para instalar." : "Perfil pronto. Toque em Ativar para continuar.") : copy.message}</p><button className={`primary-button activate-button ${isReady ? "is-visible" : ""}`} type="button" onClick={downloadProfile} disabled={!isReady}><span>{isActivated ? "Abrir novamente" : "Ativar"}</span><span className="button-arrow" aria-hidden="true">↓</span></button><div className="footer"><span className="footer-dot" aria-hidden="true" /> PURPOU IOS <span>•</span> Perfil de configuração</div></section></div></main>;
+  return <main className="app-shell user-panel-shell"><div className="user-topbar"><div className="user-brand"><span className="user-brand-dot" /> PURPOU IOS</div><div className="user-menu-wrap"><button className="user-menu-button" type="button" aria-label="Abrir menu" aria-expanded={isUserMenuOpen} onClick={() => setIsUserMenuOpen((current) => !current)}><span /><span /><span /></button>{isUserMenuOpen && <div className="user-menu"><button type="button" onClick={requestUserLogout}>↩ Sair do acesso</button></div>}</div></div><div className="container"><section className="card panel-card" aria-labelledby="panel-title"><div className="panel-header"><div className="logo logo-settings" aria-hidden="true">⚙️</div><div><p className="eyebrow">PURPOU IOS · PERFIL 01</p><h2 id="panel-title">Abaixar DNS</h2></div></div><p className="panel-description">Prepare o perfil de configuração para seu dispositivo.</p><div className="progress-area" aria-live="polite"><div className="progress-info"><span>{isReady ? "Concluído" : copy.label}</span><span>{progress}%</span></div><div className="progress-track" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}><div className="progress-bar" style={{ width: `${progress}%` }} /></div><div className="progress-meta"><span className="live-indicator" aria-hidden="true" /><span>{isReady ? "Perfil validado" : "Conexão segura"}</span></div></div><p className={`status ${isReady ? "status-ready" : ""}`}>{isReady ? (isActivated ? "Perfil aberto. Siga as instruções do iOS para instalar." : "Perfil pronto. Toque em Ativar para continuar.") : copy.message}</p><button className={`primary-button activate-button ${isReady ? "is-visible" : ""}`} type="button" onClick={downloadProfile} disabled={!isReady}><span>{isActivated ? "Abrir novamente" : "Ativar"}</span><span className="button-arrow" aria-hidden="true">↓</span></button><div className="footer"><span className="footer-dot" aria-hidden="true" /> PURPOU IOS <span>•</span> Perfil de configuração</div></section></div>{isLogoutConfirmOpen && <div className="modal-backdrop" onClick={() => setIsLogoutConfirmOpen(false)}><div className="logout-modal" onClick={(event) => event.stopPropagation()}><div className="logout-icon">!</div><h2>Sair do acesso?</h2><p>Se você sair, será necessário inserir sua key novamente para acessar este painel.</p><div className="modal-actions"><button type="button" className="cancel-button" onClick={() => setIsLogoutConfirmOpen(false)}>Cancelar</button><button type="button" className="create-access-button logout-confirm-button" onClick={confirmUserLogout}>Sim, sair</button></div></div></div>}</main>;
 }
 
 function MetricCard({ icon, tone, label, value, caption }: { icon: string; tone: string; label: string; value: number; caption: string }) { return <div className="metric-card"><span className={`metric-icon ${tone}`}>{icon}</span><span className="metric-label">{label}</span><strong>{value}</strong><span className="metric-caption">{caption}</span></div>; }
