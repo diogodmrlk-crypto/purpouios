@@ -1,7 +1,7 @@
 {
   "name": "PurpouIOS",
   "short_name": "PurpouIOS",
-  "description": "Painel PurpouIOS para preparar o perfil de configuração iOS.",
+  "description": "Painel PurpouIOS.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
